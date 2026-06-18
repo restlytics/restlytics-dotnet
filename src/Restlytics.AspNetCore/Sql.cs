@@ -72,14 +72,15 @@ internal static partial class Sql
         s = SingleQuoted().Replace(s, "?");
         s = DoubleQuoted().Replace(s, "?");
 
+        // Normalize named/positional placeholders FIRST, as whole tokens, so the
+        // numeric pass below doesn't bite the digit out of `$1` and leave a stray `$`.
+        s = NamedPlaceholder().Replace(s, "?");      // :name, $1
+        s = NumberedPlaceholder().Replace(s, "?");   // ?1, ?2 (some drivers)
+
         // Drop numeric literals (hex first, then decimal, then plain ints).
         s = HexLiteral().Replace(s, "?");
         s = DecimalLiteral().Replace(s, "?");
         s = IntLiteral().Replace(s, "?");
-
-        // Normalize existing placeholders.
-        s = NumberedPlaceholder().Replace(s, "?");   // ?1, ?2 (some drivers)
-        s = NamedPlaceholder().Replace(s, "?");      // :name, $1
 
         // Collapse IN lists and VALUES tuples.
         s = InList().Replace(s, "IN (?)");
