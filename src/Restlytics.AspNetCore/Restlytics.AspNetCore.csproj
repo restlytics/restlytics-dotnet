@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Internal types are surfaced to the test project. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- NuGet package metadata -->
+    <PackageId>Restlytics.AspNetCore</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>restlytics</Authors>
+    <Company>restlytics</Company>
+    <Description>Zero-config performance and error tracing for ASP.NET Core, shipped to restlytics in OTLP/JSON. Middleware request spans, EF Core DB spans, and outbound HttpClient spans — fire-and-forget, safe by default.</Description>
+    <PackageTags>tracing;observability;apm;aspnetcore;otlp;opentelemetry;restlytics</PackageTags>
+    <PackageProjectUrl>https://github.com/restlytics/restlytics-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/restlytics/restlytics-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!--
+      EF Core DB instrumentation is optional. When enabled (the default), the
+      RestlyticsDbInterceptor is compiled and the Relational package is referenced.
+      Set RestlyticsEnableEfCore=false to drop the EF Core dependency entirely.
+    -->
+    <RestlyticsEnableEfCore Condition="'$(RestlyticsEnableEfCore)' == ''">true</RestlyticsEnableEfCore>
+    <DefineConstants Condition="'$(RestlyticsEnableEfCore)' == 'true'">$(DefineConstants);RESTLYTICS_EFCORE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASP.NET Core middleware, routing, HttpClient, configuration, DI. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RestlyticsEnableEfCore)' == 'true'">
+    <!-- Optional: DbCommandInterceptor lives in the Relational package. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Expose internal types to the test project. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Restlytics.Tests" />
+  </ItemGroup>
+
+</Project>
