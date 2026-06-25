@@ -96,3 +96,24 @@ jobs:
           git tag -a "${TAG}" -m "${TAG}"
           git push origin "${TAG}"
           gh release create "${TAG}" --title "${TAG}" --generate-notes
+
+      # --- Publish to NuGet (best-effort: skips if NUGET_API_KEY is not configured) ---
+      - name: Set up .NET
+        if: steps.bump.outputs.skip != 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Pack and publish to NuGet
+        if: steps.bump.outputs.skip != 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_API_KEY:-}" ]; then
+            echo "::warning::NUGET_API_KEY not set — skipping NuGet publish for ${TAG}."
+            exit 0
+          fi
+          dotnet pack src/Restlytics.AspNetCore/Restlytics.AspNetCore.csproj -c Release -o nupkgs
+          dotnet nuget push "nupkgs/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
