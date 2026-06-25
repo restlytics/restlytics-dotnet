@@ -166,7 +166,7 @@ internal static class Payload
     /// <summary>Stable identifiers for the SDK, surfaced as resource attributes and the scope name.</summary>
     public const string SdkName = "restlytics-dotnet";
     public const string SdkLanguage = "dotnet";
-    public const string SdkVersion = "0.1.0";
+    public const string SdkVersion = "0.1.1";
 
     /// <summary>Serializer options: omit nulls (belt-and-suspenders) and don't escape '/'.</summary>
     public static readonly JsonSerializerOptions JsonOptions = new()

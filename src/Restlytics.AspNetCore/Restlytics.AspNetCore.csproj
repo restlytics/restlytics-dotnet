@@ -11,7 +11,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>Restlytics.AspNetCore</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>restlytics</Authors>
     <Company>restlytics</Company>
     <Description>Zero-config performance and error tracing for ASP.NET Core, shipped to restlytics in OTLP/JSON. Middleware request spans, EF Core DB spans, and outbound HttpClient spans — fire-and-forget, safe by default.</Description>
