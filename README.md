@@ -7,9 +7,7 @@ Zero-config performance + error tracing for ASP.NET Core, shipped to [restlytics
 - **Zero added latency** — spans are flushed *after* the response, fire-and-forget over `HttpClient` with gzip and a hard ~2s timeout.
 - **Safe by default** — head-based sampling, SQL normalized to literal-free templates, bindings never sent, query strings scrubbed, no request/response bodies.
 
-> This package is **mirrored from the restlytics monorepo** (`sdks/dotnet/`) out to the public
-> `restlytics-dotnet` repo. It conforms to the cross-language [`SPEC.md`](../SPEC.md) so the
-> ingestion service accepts it identically to every other restlytics SDK.
+> **This is the canonical, open-source repository for the restlytics ASP.NET Core SDK** — published to NuGet as `Restlytics.AspNetCore`. Open issues and pull requests here. It conforms to the cross-language restlytics wire contract, so the ingestion service accepts it identically to every other restlytics SDK.
 
 ---
 
