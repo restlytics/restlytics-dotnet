@@ -295,8 +295,11 @@ internal sealed class Tracer
         {
             traceId = tp.TraceId;
             rootParentSpanId = tp.ParentSpanId;
-            // Respect an upstream "not sampled" decision; only re-roll if it sampled.
-            sampled = tp.Sampled && SampleDecision(traceId);
+            // A continued trace inherits the upstream sampled flag EXACTLY — the
+            // decision is made once, at the root of the trace. Re-rolling it here
+            // would drop a trace the upstream chose to keep, severing the
+            // distributed trace mid-chain whenever the sample rate is below 1.
+            sampled = tp.Sampled;
         }
         else
         {
