@@ -18,4 +18,8 @@
     <ProjectReference Include="../../src/Restlytics.AspNetCore/Restlytics.AspNetCore.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
