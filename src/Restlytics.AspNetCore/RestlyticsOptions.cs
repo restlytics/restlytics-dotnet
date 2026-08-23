@@ -63,7 +63,10 @@ public sealed class RestlyticsOptions
         "/readyz",
     };
 
-    /// <summary>Outbound <c>url.full</c> query keys to redact, plus belt-and-suspenders for inbound scrubbing.</summary>
+    /// <summary>
+    /// Legacy query-key list. Every outbound query value is now redacted regardless
+    /// of its key so unknown application secrets also fail closed.
+    /// </summary>
     public List<string> RedactQueryKeys { get; set; } = new()
     {
         "token", "api_key", "apikey", "password", "secret", "access_token", "key", "signature",

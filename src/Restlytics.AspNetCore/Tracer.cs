@@ -63,19 +63,36 @@ internal sealed class SpanBuilder
 
     public SpanBuilder SetString(string key, string value)
     {
-        _attributes.Add(new KeyValue { Key = key, Value = AnyValue.String(value) });
+        if (Redaction.IsSensitiveAttributeKey(key))
+        {
+            return this;
+        }
+
+        string safe = string.Equals(key, "url.full", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)
+            ? Redaction.Url(uri)
+            : value;
+        _attributes.Add(new KeyValue { Key = key, Value = AnyValue.String(safe) });
         return this;
     }
 
     /// <summary>Record an int attribute. Serialized as intValue (a STRING) per the contract.</summary>
     public SpanBuilder SetInt(string key, long value)
     {
+        if (Redaction.IsSensitiveAttributeKey(key))
+        {
+            return this;
+        }
         _attributes.Add(new KeyValue { Key = key, Value = AnyValue.Int(value) });
         return this;
     }
 
     public SpanBuilder SetBool(string key, bool value)
     {
+        if (Redaction.IsSensitiveAttributeKey(key))
+        {
+            return this;
+        }
         _attributes.Add(new KeyValue { Key = key, Value = AnyValue.Bool(value) });
         return this;
     }
@@ -83,11 +100,7 @@ internal sealed class SpanBuilder
     public SpanBuilder SetStatus(int code, string? message = null)
     {
         StatusCode = code;
-        if (message is not null)
-        {
-            // Cap to keep payloads bounded; full stack traces don't belong on the wire.
-            StatusMessage = message.Length > 1024 ? message.Substring(0, 1024) : message;
-        }
+        StatusMessage = Redaction.ExceptionMessage(message);
 
         return this;
     }

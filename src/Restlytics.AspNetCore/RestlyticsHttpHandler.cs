@@ -1,11 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace Restlytics.AspNetCore;
 
@@ -67,7 +63,7 @@ public sealed class RestlyticsHttpHandler : DelegatingHandler
                     span.SetString("http.request.method", request.Method.Method);
                     if (uri is not null)
                     {
-                        span.SetString("url.full", RedactUrl(uri, _options.RedactQueryKeys));
+                        span.SetString("url.full", Redaction.Url(uri, _options.RedactQueryKeys));
                     }
 
                     span.SetString("server.address", host);
@@ -86,47 +82,4 @@ public sealed class RestlyticsHttpHandler : DelegatingHandler
         }
     }
 
-    /// <summary>
-    /// Strip sensitive keys from a URL's query string for <c>url.full</c>. Keeps the
-    /// scheme/host/path (needed for grouping) but never leaks tokens/secrets.
-    /// </summary>
-    internal static string RedactUrl(Uri uri, IReadOnlyList<string> redactKeys)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(uri.Query))
-            {
-                return uri.GetLeftPart(UriPartial.Path);
-            }
-
-            var redact = new HashSet<string>(
-                redactKeys.Select(k => k.ToLowerInvariant()),
-                StringComparer.Ordinal);
-
-            Dictionary<string, Microsoft.Extensions.Primitives.StringValues> parsed =
-                QueryHelpers.ParseQuery(uri.Query);
-
-            var sb = new StringBuilder(uri.GetLeftPart(UriPartial.Path));
-            bool first = true;
-            foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> kv in parsed)
-            {
-                bool sensitive = redact.Contains(kv.Key.ToLowerInvariant());
-                foreach (string? raw in kv.Value)
-                {
-                    sb.Append(first ? '?' : '&');
-                    first = false;
-                    sb.Append(Uri.EscapeDataString(kv.Key));
-                    sb.Append('=');
-                    sb.Append(sensitive ? "REDACTED" : Uri.EscapeDataString(raw ?? string.Empty));
-                }
-            }
-
-            return sb.ToString();
-        }
-        catch
-        {
-            // On any parse failure, fall back to the path-only form (never the query).
-            return uri.GetLeftPart(UriPartial.Path);
-        }
-    }
 }

@@ -83,9 +83,9 @@ public sealed class RestlyticsMiddleware : IMiddleware
             }
 
             // http.route MUST be the TEMPLATE (e.g. /users/{id}), never the raw URL.
-            // ASP.NET exposes it via endpoint.RoutePattern.RawText. Fall back to the
-            // request path only when routing didn't resolve (404s, etc.).
-            string template = RouteTemplate(context) ?? context.Request.Path.ToString();
+            // ASP.NET exposes it via endpoint.RoutePattern.RawText. Unmatched raw
+            // paths are never emitted because they may contain identifiers/tokens.
+            string template = RouteTemplate(context) ?? "/*";
             if (string.IsNullOrEmpty(template))
             {
                 template = "/";
