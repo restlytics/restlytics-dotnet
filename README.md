@@ -155,6 +155,8 @@ restlytics is built to be safe to run in production against real traffic:
 - **Fire-and-forget, never fatal.** Every transport/instrument path is wrapped; telemetry can
   never throw into — or slow — your app. A slow/unreachable ingest endpoint is bounded by a
   short timeout, and the batch is simply dropped on failure (no retries into the request path).
+- **Bounded delivery.** One worker drains a fixed 64-batch channel. Saturation drops
+  the new batch instead of blocking, spawning tasks, or growing memory.
 - **No binding values.** SQL is normalized to a template; only a binding *count* is sent.
 - **No raw SQL** unless you explicitly set `CaptureSql=true` (then capped at 2048 chars).
 - **Scrubbed URLs.** Every `url.full` query value is redacted and credentials/fragments are removed.
@@ -168,6 +170,15 @@ restlytics is built to be safe to run in production against real traffic:
 
 Set `RESTLYTICS_TRANSPORT=null` (or `"Transport": "null"`) to disable delivery while keeping
 instrumentation — useful in tests and local dev.
+
+Resolve `IRestlyticsDiagnostics` from dependency injection for payload-free
+accepted/delivered/dropped/failed counters and a bounded graceful flush:
+
+```csharp
+var diagnostics = app.Services.GetRequiredService<IRestlyticsDiagnostics>();
+logger.LogInformation("Restlytics drops {Drops}", diagnostics.Snapshot.DroppedBatches);
+await diagnostics.FlushAsync(TimeSpan.FromSeconds(2), stoppingToken);
+```
 
 ---
 

@@ -46,6 +46,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton(options);
 
         services.TryAddSingleton<ITransport>(_ => BuildTransport(options));
+        services.TryAddSingleton<IRestlyticsDiagnostics>(sp =>
+            sp.GetRequiredService<ITransport>() as IRestlyticsDiagnostics ?? new NullTransport());
 
         services.TryAddSingleton(sp =>
             new Tracer(
