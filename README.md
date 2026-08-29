@@ -13,6 +13,16 @@ Zero-config performance + error tracing for ASP.NET Core, shipped to [restlytics
 
 ## Install
 
+> [!IMPORTANT]
+> **Not yet published to NuGet.** `Restlytics.AspNetCore` returns 404 today — publication is tracked in
+> [restlytics/app#232](https://github.com/restlytics/app/issues/232). Until it lands, install
+> directly from this repository:
+>
+> ```bash
+> git clone --branch v0.1.5 https://github.com/restlytics/restlytics-dotnet
+> dotnet add reference restlytics-dotnet/src/Restlytics.AspNetCore/Restlytics.AspNetCore.csproj
+> ```
+
 ```bash
 dotnet add package Restlytics.AspNetCore
 ```
