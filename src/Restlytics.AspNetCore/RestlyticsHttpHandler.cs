@@ -34,13 +34,16 @@ public sealed class RestlyticsHttpHandler : DelegatingHandler
     {
         // Capture ambient state up front; if untraced, do nothing but forward.
         RequestState? state = _tracer.Current;
-        bool trace = _options.InstrumentHttp
-            && state is { Sampled: true, RootSpan: not null };
+        bool propagate = _options.InstrumentHttp && state is not null;
 
-        if (!trace)
+        if (!propagate)
         {
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
+
+        (string traceparent, string spanId) = state!.CreateOutboundContext();
+        request.Headers.Remove("traceparent");
+        request.Headers.TryAddWithoutValidation("traceparent", traceparent);
 
         long startNs = state!.NowNs();
         HttpResponseMessage? response = null;
@@ -57,7 +60,11 @@ public sealed class RestlyticsHttpHandler : DelegatingHandler
                 Uri? uri = request.RequestUri;
                 string host = uri?.Host ?? string.Empty;
 
-                SpanBuilder? span = state.AddChild($"http {host}", startNs, endNs);
+                SpanBuilder? span = state.AddChild(
+                    $"http {host}",
+                    startNs,
+                    endNs,
+                    spanId: spanId);
                 if (span is not null)
                 {
                     span.SetString("http.request.method", request.Method.Method);
