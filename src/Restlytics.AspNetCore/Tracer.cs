@@ -175,6 +175,7 @@ internal sealed class RequestState
 
     public bool Sampled { get; }
     public string TraceId { get; }
+    public string RootSpanId { get; }
     public SpanBuilder? RootSpan { get; private set; }
 
     public readonly List<SpanBuilder> Children = new();
@@ -193,6 +194,7 @@ internal sealed class RequestState
         // Anchor wall-clock ↔ monotonic clocks together.
         _wallAnchorNs = WallClockNs();
         _monoAnchorTicks = Stopwatch.GetTimestamp();
+        RootSpanId = Ids.SpanId();
 
         if (!sampled)
         {
@@ -202,7 +204,7 @@ internal sealed class RequestState
         long now = NowNs();
         RootSpan = new SpanBuilder(
             traceId: traceId,
-            spanId: Ids.SpanId(),
+            spanId: RootSpanId,
             parentSpanId: rootParentSpanId,
             name: rootName,
             kind: 2, // SERVER
@@ -219,7 +221,12 @@ internal sealed class RequestState
     /// instrumentation often only learns of a span AFTER it finished, so callers
     /// back-date the start. Returns null when not sampled or the buffer cap is hit.
     /// </summary>
-    public SpanBuilder? AddChild(string name, long startNs, long endNs, int kind = 3 /* CLIENT */)
+    public SpanBuilder? AddChild(
+        string name,
+        long startNs,
+        long endNs,
+        int kind = 3 /* CLIENT */,
+        string? spanId = null)
     {
         if (!Sampled || RootSpan is null)
         {
@@ -233,7 +240,7 @@ internal sealed class RequestState
 
         var span = new SpanBuilder(
             traceId: TraceId,
-            spanId: Ids.SpanId(),
+            spanId: spanId ?? Ids.SpanId(),
             parentSpanId: RootSpan.SpanId,
             name: name,
             kind: kind,
@@ -242,6 +249,16 @@ internal sealed class RequestState
         Children.Add(span);
 
         return span;
+    }
+
+    /// <summary>
+    /// Mint a CLIENT SpanContext for outbound propagation. Unsampled traces keep
+    /// propagating with flags=00 even though no local span is recorded.
+    /// </summary>
+    public (string Traceparent, string SpanId) CreateOutboundContext()
+    {
+        string spanId = Ids.SpanId();
+        return (Ids.Format(TraceId, spanId, Sampled), spanId);
     }
 
     private static long WallClockNs()

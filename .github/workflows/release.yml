@@ -15,7 +15,7 @@ on:
   # Manual escape hatch: the merge trigger above is the only automatic path, so a
   # release run that fails, is cancelled, or otherwise leaves main untagged cannot
   # be retried without this. Run it from the Actions tab AGAINST MAIN and pick the
-  # bump level; the new version is computed from the latest tag either way.
+  # bump level; ENABLE_PACKAGE_RELEASE must also be true, including for manual runs.
   workflow_dispatch:
     inputs:
       bump:
@@ -35,7 +35,7 @@ concurrency:
 jobs:
   release:
     name: Tag & release
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    if: vars.ENABLE_PACKAGE_RELEASE == 'true' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,9 +56,9 @@ jobs:
           if [ "$EVENT" = workflow_dispatch ]; then
             # Manual run: the level comes from the dispatch input, not a PR label.
             level="$INPUT_LEVEL"
-          elif printf '%s' "$LABELS" | grep -q '"semver:major"'; then level=major
-          elif printf '%s' "$LABELS" | grep -q '"semver:minor"'; then level=minor
-          elif printf '%s' "$LABELS" | grep -q '"semver:patch"'; then level=patch
+          elif printf '%s' "$LABELS" | grep -q '"semver:major"'; then level="major"
+          elif printf '%s' "$LABELS" | grep -q '"semver:minor"'; then level="minor"
+          elif printf '%s' "$LABELS" | grep -q '"semver:patch"'; then level="patch"
           fi
           if [ -z "$level" ]; then
             echo "No semver:* label on the merged PR; skipping release."
@@ -89,6 +89,17 @@ jobs:
           echo "version=$new" >> "$GITHUB_OUTPUT"
           echo "tag=v$new" >> "$GITHUB_OUTPUT"
 
+      - name: Verify NuGet release credentials
+        if: steps.bump.outputs.skip != 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_API_KEY:-}" ]; then
+            echo "::error::NUGET_API_KEY is required before a release can create a tag."
+            exit 1
+          fi
+
       - name: Bump version in sources
         if: steps.bump.outputs.skip != 'true'
         env:
@@ -115,7 +126,7 @@ jobs:
           git push origin "${TAG}"
           gh release create "${TAG}" --title "${TAG}" --generate-notes
 
-      # --- Publish to NuGet (best-effort: skips if NUGET_API_KEY is not configured) ---
+      # Registry publication is part of release success, never a best-effort tail step.
       - name: Set up .NET
         if: steps.bump.outputs.skip != 'true'
         uses: actions/setup-dotnet@v4
@@ -129,9 +140,5 @@ jobs:
           TAG: ${{ steps.ver.outputs.tag }}
         run: |
           set -euo pipefail
-          if [ -z "${NUGET_API_KEY:-}" ]; then
-            echo "::warning::NUGET_API_KEY not set — skipping NuGet publish for ${TAG}."
-            exit 0
-          fi
           dotnet pack src/Restlytics.AspNetCore/Restlytics.AspNetCore.csproj -c Release -o nupkgs
           dotnet nuget push "nupkgs/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

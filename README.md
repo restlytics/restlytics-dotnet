@@ -3,7 +3,7 @@
 Zero-config performance + error tracing for ASP.NET Core, shipped to [restlytics](https://restlytics.com) in OTLP/JSON.
 
 - **Fast install** — one `AddRestlytics()` + one `app.UseRestlytics()`.
-- **Framework-native** — middleware request spans, EF Core `DbCommandInterceptor` DB spans, and outbound `HttpClient` spans via a `DelegatingHandler`.
+- **Framework-native** — middleware request spans, EF Core `DbCommandInterceptor` DB spans, and outbound `HttpClient` spans via a `DelegatingHandler` that injects the exact W3C CLIENT `traceparent` (including unsampled `flags=00`).
 - **Zero added latency** — spans are flushed *after* the response, fire-and-forget over `HttpClient` with gzip and a hard ~2s timeout.
 - **Safe by default** — head-based sampling, SQL normalized to literal-free templates, bindings never sent, query strings scrubbed, no request/response bodies.
 
